@@ -1,0 +1,44 @@
+name: Discord Daily Posts
+
+on:
+  schedule:
+    - cron: "0 12 * * *"    # 8:00 AM ET
+    - cron: "0 18 * * *"    # 2:00 PM ET
+    - cron: "30 21 * * *"   # 5:30 PM ET
+  workflow_dispatch: {}
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post random message to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python3 - <<'PY'
+          import json, os, random, sys, urllib.request, urllib.error
+
+          url = os.environ.get("DISCORD_WEBHOOK_URL")
+          if not url:
+              print("ERROR: DISCORD_WEBHOOK_URL secret is not set", file=sys.stderr)
+              sys.exit(1)
+
+          messages = [
+              "🔥 Premium is heating up today.\n\nMake sure you check out all the plays before the action starts.\n\nIf you're tired of guessing, join the premium side:\nhttps://www.winible.com/thewinningedge",
+              "🚨 Plays are posted.\n\nDo not be the person asking \"what was the move?\" after everything starts.\n\nPremium is live:\nhttps://www.winible.com/thewinningedge",
+              "🧠 Full card is being watched today.\n\nFree plays are cool… but premium is where the real work goes down.\n\nJoin here:\nhttps://www.winible.com/thewinningedge",
+              "📌 Reminder:\n\nCheck the premium section.\nReview the plays.\nDon't wait until it's too late.\n\nPremium link:\nhttps://www.winible.com/thewinningedge",
+          ]
+
+          payload = json.dumps({"username": "Winning Edge Agent", "content": random.choice(messages)}).encode("utf-8")
+          req = urllib.request.Request(url, data=payload, method="POST")
+          req.add_header("Content-Type", "application/json")
+          req.add_header("User-Agent", "DiscordBot (winning-edge-scheduler, 1.0)")
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print(f"Posted to Discord (status {resp.status})")
+          except urllib.error.HTTPError as e:
+              body = e.read().decode()
+              print(f"HTTP error {e.code}: {body}", file=sys.stderr)
+              sys.exit(1)
+          PY
